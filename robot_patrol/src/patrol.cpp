@@ -25,7 +25,7 @@ private:
 
     // Get laser measurements for the left, right, and forward directions
     // this->laser_right = get_min_distance(msg->ranges, 180, 190);
-    this->laser_forward = get_min_distance(msg->ranges, 300, 460);
+    this->laser_forward = get_min_distance(msg->ranges, 280, 420);
     // this->laser_left = get_min_distance(msg->ranges, 530, 540);
 
     // RCLCPP_INFO(this->get_logger(), "[LEFT] = '%f'", this->laser_left);
