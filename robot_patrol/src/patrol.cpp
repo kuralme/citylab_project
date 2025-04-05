@@ -49,9 +49,9 @@ private:
     size_t end_idx = 540;
 
     // Find the maximum distance in the range
-    auto max_it =
-        std::max_element(ranges.begin() + start_idx, ranges.begin() + end_idx,
-                         [](float a, float b) { return a > 0.0f && a < b; });
+    auto max_it = std::max_element(
+        ranges.begin() + start_idx, ranges.begin() + end_idx,
+        [](float a, float b) { return a > 0.0f && a < 30.0f && a < b; });
 
     // Calculate the index of the max element
     if (max_it != ranges.begin() + end_idx) {
