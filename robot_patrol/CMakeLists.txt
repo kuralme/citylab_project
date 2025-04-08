@@ -17,11 +17,12 @@ find_package(robot_patrol_srv REQUIRED)
 
 # Define executables
 add_executable(robot_patrol_node src/patrol.cpp)
-ament_target_dependencies(robot_patrol_node rclcpp std_msgs geometry_msgs nav_msgs sensor_msgs robot_patrol_srv)
+ament_target_dependencies(robot_patrol_node rclcpp std_msgs geometry_msgs nav_msgs sensor_msgs)
 
+add_executable(patrol_with_service_node src/patrol_with_service.cpp)
+ament_target_dependencies(patrol_with_service_node rclcpp std_msgs geometry_msgs nav_msgs sensor_msgs robot_patrol_srv)
 add_executable(direction_service_node src/direction_service.cpp)
 ament_target_dependencies(direction_service_node rclcpp std_msgs geometry_msgs nav_msgs sensor_msgs robot_patrol_srv)
-
 add_executable(test_service_node src/test_service.cpp)
 ament_target_dependencies(test_service_node rclcpp std_msgs geometry_msgs nav_msgs sensor_msgs robot_patrol_srv)
 
@@ -30,6 +31,7 @@ install(TARGETS
   robot_patrol_node
   direction_service_node
   test_service_node
+  patrol_with_service_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

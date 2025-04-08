@@ -68,9 +68,7 @@ private:
     }
 
     response->direction = direction;
-    RCLCPP_INFO(this->get_logger(),
-                "Direction find service completed. Result: %s",
-                response->direction.c_str());
+    RCLCPP_INFO(this->get_logger(), "Direction find service completed.");
   }
 
   rclcpp::Service<robot_patrol_srv::srv::GetDirection>::SharedPtr service_;
