@@ -18,6 +18,7 @@ public:
         "/scan", 10,
         std::bind(&DirectionClient::scan_callback, this,
                   std::placeholders::_1));
+    RCLCPP_INFO(this->get_logger(), "Test Service Client Ready ");
   }
 
   bool is_service_done() const { return service_done_; }
@@ -46,9 +47,7 @@ public:
     auto request =
         std::make_shared<robot_patrol_srv::srv::GetDirection::Request>();
     request->laser_data = laser_data_;
-    RCLCPP_INFO(this->get_logger(),
-                "Sending request with laser data of size: %ld",
-                laser_data_.ranges.size());
+    RCLCPP_INFO(this->get_logger(), "Test Service Requested");
 
     auto result_future = client_->async_send_request(
         request, std::bind(&DirectionClient::response_callback, this,
@@ -75,7 +74,7 @@ private:
       rclcpp::Client<robot_patrol_srv::srv::GetDirection>::SharedFuture
           future) {
     auto response = future.get();
-    RCLCPP_INFO(this->get_logger(), "Response: success");
+    RCLCPP_INFO(this->get_logger(), "Test Service Response sent");
     service_done_ = true;
     service_called_ = false;
   }

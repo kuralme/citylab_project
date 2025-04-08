@@ -13,7 +13,8 @@ public:
         "/direction_service",
         std::bind(&DirectionService::direction_callback, this, _1, _2));
 
-    RCLCPP_INFO(this->get_logger(), "Ready to find direction for patrol...");
+    RCLCPP_INFO(this->get_logger(),
+                "Service Server Ready to find direction for patrol.");
   }
 
 private:
@@ -22,7 +23,7 @@ private:
           request,
       std::shared_ptr<robot_patrol_srv::srv::GetDirection::Response> response) {
     RCLCPP_INFO(this->get_logger(),
-                "Received a request to find direction for patrolling.");
+                "Service Requested - Finding direction for patrolling...");
     const std::vector<float> ranges = request->laser_data.ranges;
 
     size_t right_start_idx = 180;
@@ -68,7 +69,8 @@ private:
     }
 
     response->direction = direction;
-    RCLCPP_INFO(this->get_logger(), "Direction find service completed.");
+    RCLCPP_INFO(this->get_logger(), "Service Completed - Direction: %s",
+                direction.c_str());
   }
 
   rclcpp::Service<robot_patrol_srv::srv::GetDirection>::SharedPtr service_;

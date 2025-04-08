@@ -17,6 +17,7 @@ public:
 
     move_cmd_.linear.x = 0.0;
     move_cmd_.angular.z = 0.0;
+    RCLCPP_INFO(this->get_logger(), "Service Client Ready");
   }
 
 private:
@@ -49,13 +50,14 @@ private:
   void call_direction_service() {
     if (!client_->service_is_ready()) {
       RCLCPP_WARN(this->get_logger(),
-                  "Service is not ready, cannot send request.");
+                  "Service Client is not ready, cannot send request.");
       return;
     }
 
     auto request =
         std::make_shared<robot_patrol_srv::srv::GetDirection::Request>();
     request->laser_data = laser_data_;
+    RCLCPP_INFO(this->get_logger(), "Patrol direction Service Requested");
 
     auto result_future = client_->async_send_request(
         request,
@@ -68,8 +70,7 @@ private:
     auto response = future.get();
 
     direction_ = response->direction;
-    RCLCPP_INFO(this->get_logger(), "Received patrol direction: %s",
-                direction_.c_str());
+    RCLCPP_INFO(this->get_logger(), "Service Response sent");
 
     if (direction_ == "front") {
       move_cmd_.angular.z = 0.0;
