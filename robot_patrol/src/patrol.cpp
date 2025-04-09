@@ -1,6 +1,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
+#include <cmath>
 
 class Patrol : public rclcpp::Node {
 public:
@@ -24,13 +25,10 @@ private:
     }
 
     // Get laser measurements for the left, right, and forward directions
-    // this->laser_right = get_min_distance(msg->ranges, 180, 190);
-    this->laser_forward = get_min_distance(msg->ranges, 280, 420);
-    // this->laser_left = get_min_distance(msg->ranges, 530, 540);
+    this->laser_forward = get_min_distance(msg->ranges, 300, 420);
 
-    // RCLCPP_INFO(this->get_logger(), "[LEFT] = '%f'", this->laser_left);
-    // RCLCPP_INFO(this->get_logger(), "[RIGHT] = '%f'", this->laser_right);
-    // RCLCPP_INFO(this->get_logger(), "[FORWARD] = '%f'", this->laser_forward);
+    // RCLCPP_INFO(this->get_logger(), "FORWARD min = '%.2f'",
+    //             this->laser_forward);
 
     if (laser_forward > 0.35) {
       // No obstacle in front, move forward
@@ -38,6 +36,8 @@ private:
     } else {
       // Find the empty space and turn
       direction_ = find_patrol_direction(msg->ranges);
+      RCLCPP_INFO(this->get_logger(), "Next patrol angle = %.2f [rad]",
+                  direction_);
       move_cmd_.angular.z = direction_ / 2;
     }
     move_cmd_.linear.x = 0.1;
@@ -49,21 +49,11 @@ private:
     size_t end_idx = 540;
 
     // Find the maximum distance in the range
-    auto max_it = std::max_element(
-        ranges.begin() + start_idx, ranges.begin() + end_idx,
-        [](float a, float b) { return a > 0.0f && a < 30.0f && a < b; });
+    int max_idx = get_max_dist_Idx(ranges, start_idx, end_idx);
 
-    // Calculate the index of the max element
-    if (max_it != ranges.begin() + end_idx) {
-      size_t max_idx = std::distance(ranges.begin(), max_it);
-
-      // Corresponding angle (deg to rad)
-      int angle_deg = (max_idx - 360) / 2;
-      return angle_deg * M_PI / 180;
-    } else {
-      // No valid max distance found
-      return 0.0;
-    }
+    // Corresponding angle ref to front [rad]
+    int angle_deg = (max_idx - 360) / 2;
+    return angle_deg * M_PI / 180;
   }
 
   float get_min_distance(const std::vector<float> &ranges, size_t start_idx,
@@ -77,15 +67,26 @@ private:
                : std::numeric_limits<float>::infinity();
   }
 
-  float get_max_distance(const std::vector<float> &ranges, size_t start_idx,
-                         size_t end_idx) {
-    auto it =
-        std::max_element(ranges.begin() + start_idx, ranges.begin() + end_idx,
-                         [](float a, float b) { return a > 0.0f && a < b; });
+  int get_max_dist_Idx(const std::vector<float> &vec, size_t start_idx,
+                       size_t end_idx) {
+    float max_value = -std::numeric_limits<float>::infinity();
+    int max_index = -1;
 
-    return (it != ranges.begin() + end_idx)
-               ? *it
-               : -std::numeric_limits<float>::infinity();
+    // Ensure the range is valid
+    if (start_idx >= vec.size() || end_idx >= vec.size() ||
+        start_idx > end_idx) {
+      std::cerr << "Invalid vector size!" << std::endl;
+      return -1;
+    }
+
+    for (size_t i = start_idx; i <= end_idx; ++i) {
+      if (!std::isinf(vec[i]) && vec[i] > max_value) {
+        max_value = vec[i];
+        max_index = i;
+      }
+    }
+
+    return max_index;
   }
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
