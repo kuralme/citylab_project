@@ -4,13 +4,15 @@
 
 class Patrol : public rclcpp::Node {
 public:
-  Patrol() : Node("robot_patrol_node"), direction_(0.0) {
+  Patrol() : Node("robot_patrol_node") {
     cmd_vel_pub_ =
         this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
         "/scan", 10,
         std::bind(&Patrol::scan_callback, this, std::placeholders::_1));
-
+    pub_timer_ =
+        this->create_wall_timer(std::chrono::milliseconds(100),
+                                std::bind(&Patrol::patrol_execute, this));
     move_cmd_.linear.x = 0.0;
     move_cmd_.angular.z = 0.0;
   }
@@ -22,22 +24,24 @@ private:
       RCLCPP_WARN(this->get_logger(), "Received empty laser scan data.");
       return;
     }
+    laser_ranges_ = msg->ranges;
+  }
 
-    // Get laser measurements for the left, right, and forward directions
-    // this->laser_right = get_min_distance(msg->ranges, 180, 190);
-    this->laser_forward = get_min_distance(msg->ranges, 280, 420);
-    // this->laser_left = get_min_distance(msg->ranges, 530, 540);
+  void patrol_execute() {
+    if (laser_ranges_.empty()) {
+      RCLCPP_WARN(this->get_logger(), "Laser data not received yet.");
+      return;
+    }
 
-    // RCLCPP_INFO(this->get_logger(), "[LEFT] = '%f'", this->laser_left);
-    // RCLCPP_INFO(this->get_logger(), "[RIGHT] = '%f'", this->laser_right);
-    // RCLCPP_INFO(this->get_logger(), "[FORWARD] = '%f'", this->laser_forward);
+    // Get laser measurements for the forward direction
+    float laser_forward = get_min_distance(laser_ranges_, 280, 400);
 
     if (laser_forward > 0.35) {
       // No obstacle in front, move forward
       move_cmd_.angular.z = 0.0;
     } else {
       // Find the empty space and turn
-      direction_ = find_patrol_direction(msg->ranges);
+      float direction_ = find_patrol_direction(laser_ranges_);
       move_cmd_.angular.z = direction_ / 2;
     }
     move_cmd_.linear.x = 0.1;
@@ -49,21 +53,11 @@ private:
     size_t end_idx = 540;
 
     // Find the maximum distance in the range
-    auto max_it =
-        std::max_element(ranges.begin() + start_idx, ranges.begin() + end_idx,
-                         [](float a, float b) { return a > 0.0f && a < b; });
+    int max_idx = get_max_dist_Idx(ranges, start_idx, end_idx);
 
-    // Calculate the index of the max element
-    if (max_it != ranges.begin() + end_idx) {
-      size_t max_idx = std::distance(ranges.begin(), max_it);
-
-      // Corresponding angle (deg to rad)
-      int angle_deg = (max_idx - 360) / 2;
-      return angle_deg * M_PI / 180;
-    } else {
-      // No valid max distance found
-      return 0.0;
-    }
+    // Corresponding angle ref to front [rad]
+    int angle_deg = (max_idx - 360) / 2;
+    return angle_deg * M_PI / 180;
   }
 
   float get_min_distance(const std::vector<float> &ranges, size_t start_idx,
@@ -77,24 +71,33 @@ private:
                : std::numeric_limits<float>::infinity();
   }
 
-  float get_max_distance(const std::vector<float> &ranges, size_t start_idx,
-                         size_t end_idx) {
-    auto it =
-        std::max_element(ranges.begin() + start_idx, ranges.begin() + end_idx,
-                         [](float a, float b) { return a > 0.0f && a < b; });
+  int get_max_dist_Idx(const std::vector<float> &vec, size_t start_idx,
+                       size_t end_idx) {
+    float max_value = -std::numeric_limits<float>::infinity();
+    int max_index = -1;
 
-    return (it != ranges.begin() + end_idx)
-               ? *it
-               : -std::numeric_limits<float>::infinity();
+    // Ensure the range is valid
+    if (start_idx >= vec.size() || end_idx >= vec.size() ||
+        start_idx > end_idx) {
+      std::cerr << "Invalid vector size!" << std::endl;
+      return -1;
+    }
+
+    for (size_t i = start_idx; i <= end_idx; ++i) {
+      if (!std::isinf(vec[i]) && vec[i] > max_value) {
+        max_value = vec[i];
+        max_index = i;
+      }
+    }
+
+    return max_index;
   }
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
+  rclcpp::TimerBase::SharedPtr pub_timer_;
   geometry_msgs::msg::Twist move_cmd_;
-  float laser_left;
-  float laser_right;
-  float laser_forward;
-  float direction_;
+  std::vector<float> laser_ranges_;
 };
 
 int main(int argc, char **argv) {
