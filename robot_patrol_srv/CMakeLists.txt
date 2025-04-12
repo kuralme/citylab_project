@@ -27,7 +27,7 @@ endif()
 # Generate service interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GetDirection.srv"
-  DEPENDENCIES sensor_msgs  # Any other dependencies your service might have
+  DEPENDENCIES sensor_msgs
 )
 
 ament_package()
